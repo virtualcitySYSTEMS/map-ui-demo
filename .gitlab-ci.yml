@@ -1,0 +1,96 @@
+default:
+  image: gitlab.virtualcitysystems.de:5050/vcsuite/devops/gitlabrunner/node:16-bullseye
+
+variables:
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/$CI_PROJECT_PATH_SLUG/$CI_COMMIT_REF_SLUG
+
+stages:
+  - build
+  - test
+  - bundle
+  - deploy
+  - stage
+
+.template: &job_definition
+  only:
+    - /^(feature-.*|hotfix-.*|main|release-.*)$/
+  tags:
+    - linux-2.0
+
+build:
+  <<: *job_definition
+  script:
+    - npm set registry 'http://npmregistry:4873'
+    - npm ci
+  stage: build
+
+.after_build_template: &after_build_definition
+  <<: *job_definition
+  variables:
+    GIT_STRATEGY: none
+
+lint:
+  <<: *after_build_definition
+  stage: test
+  script:
+    - npm run lint
+
+audit:
+  <<: *after_build_definition
+  stage: test
+  script:
+    - npm audit --production --audit-level=medium
+
+bundle:
+  <<: *after_build_definition
+  stage: bundle
+  script:
+    - npm run build
+
+deployStaging:
+  <<: *after_build_definition
+  stage: deploy
+  environment:
+    name: staging/$CI_COMMIT_REF_SLUG
+    url: http://$CI_PROJECT_PATH_SLUG-$CI_COMMIT_REF_SLUG.stagingcluster.intern.virtualcitysystems.de
+    on_stop: stopEnvironment
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [ "" ]
+  script:
+    - /kaniko/executor --context dist/ --dockerfile build/Dockerfile --destination $CI_REGISTRY_IMAGE/staging:$CI_COMMIT_REF_SLUG
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+
+stopEnvironment:
+  stage: deploy
+  variables:
+    GIT_STRATEGY: none
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  tags:
+    - linux-2.0
+  script:
+    - echo "Stop environment staging/$CI_COMMIT_REF_NAME"
+    - echo "Delete namespace on k9s $CI_PROJECT_PATH_SLUG-$CI_COMMIT_REF_SLUG"
+    - kubectl config use-context vcsuite/cluster-management:agent
+    - kubectl delete namespace $CI_PROJECT_PATH_SLUG-$CI_COMMIT_REF_SLUG
+  when: manual
+  environment:
+    name: staging/$CI_COMMIT_REF_SLUG
+    action: stop
+
+deployStagingCluster:
+  stage: stage
+  inherit:
+    variables: false
+  variables:
+    STAGE_BRANCH: $CI_COMMIT_REF_SLUG
+    STAGE_PROJECT_NAME: $CI_PROJECT_PATH_SLUG
+    STAGE_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE
+    STAGE_NAMESPACE: $CI_PROJECT_PATH_SLUG-$CI_COMMIT_REF_SLUG
+  trigger:
+    project: vcsuite/devops/manifests
+    branch: main

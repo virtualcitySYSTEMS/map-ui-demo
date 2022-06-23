@@ -14,8 +14,11 @@
     </noscript>
     <div id="app">
       <div id="loading-wrapper">
-        <div id="loading-text">LOADING</div>
-        <div id="loading-content"></div>
+        <div id="loading-text">
+          LOADING
+        </div>
+        <div id="loading-content">
+        </div>
       </div>
     </div>
     <style>
@@ -75,7 +78,55 @@
           transform: rotate(360deg);
         }
       }
+
+      #app1-container {
+          position: absolute;
+          left: 0;
+          right: 50%;
+          bottom: 0;
+          top: 0;
+      }
+
+      #app2-container {
+          position: absolute;
+          left: 50%;
+          right: 0;
+          bottom: 0;
+          top: 0;
+      }
+
+      .loading-button {
+          height: 2rem;
+          margin-bottom: .5rem;
+          z-index: 4;
+          width: 100%;
+          border: 1px solid #409d76;
+      }
+
+      .loading-button:hover {
+          background-color: #409d76;
+          color: white;
+      }
+
+      #loading-explanation {
+          border: 1px solid #409d76;
+          width: 100%;
+          margin-bottom: .5rem;
+          padding: .5rem;
+      }
+
+      #button-container {
+          position: fixed;
+          top: 30%;
+          left: 40%;
+          right: 40%;
+          width: 20%;
+          text-align: center;
+          color: #409d76;
+          font-size: 16px;
+          font-family: 'PT Sans Narrow', sans-serif;
+      }
     </style>
-    <script type="module" src="./start.js"></script>
+    <script type="module" src="./src/start.js"></script>
   </body>
 </html>

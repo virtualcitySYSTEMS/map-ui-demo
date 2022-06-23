@@ -1,8 +1,8 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { defineConfig } from 'vite';
-import commonViteConfig from './node_modules/@vcmap/ui/build/commonViteConfig.js';
-import getPluginProxies from './node_modules/@vcmap/ui/build/getPluginProxies.js';
-import { determineHostFromArgv } from './node_modules/@vcmap/ui/build/determineHost.js';
+import commonViteConfig from '@vcmap/ui/build/commonViteConfig.js';
+import getPluginProxies from '@vcmap/ui/build/getPluginProxies.js';
+import { determineHostFromArgv } from '@vcmap/ui/build/determineHost.js';
 
 const configMain = defineConfig(async ({ mode }) => {
   const production = mode === 'production';
@@ -18,9 +18,10 @@ const configMain = defineConfig(async ({ mode }) => {
     ...commonViteConfig,
     optimizeDeps: {
       exclude: [
+        '@vcmap/ui',
         '@vcmap/core',
         'ol',
-        '@vcsuite/ui-components',
+        'vue',
       ],
       include: [
         '@vcmap/core > fast-deep-equal',
@@ -37,11 +38,12 @@ const configMain = defineConfig(async ({ mode }) => {
       port,
       proxy,
       watch: {
-        ignored: ['!**/node_modules/@vcsuite/ui-components/**'],
+        ignored: ['!**/node_modules/@vcmap/ui/**'],
       },
     },
   };
   delete config.resolve.alias['@vcmap/ui'];
+  config.css.preprocessorOptions.sass.additionalData = "\n@import 'node_modules/@vcmap/ui/src/styles/variables.scss'\n";
   return config;
 });
 
